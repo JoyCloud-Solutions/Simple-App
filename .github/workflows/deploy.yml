@@ -13,26 +13,27 @@ jobs:
       contents: read
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    # ----------------------
-    # 1️⃣ Configure AWS credentials via OIDC
-    # ----------------------
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: arn:aws:iam::866002118117:role/oidc
-        aws-region: us-east-1
+      # ----------------------
+      # 1️⃣ Configure AWS credentials via OIDC
+      # ----------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::866002118117:role/oidc
+          aws-region: us-east-1
 
-   # 3️⃣ Build Docker image
+      # ----------------------
+      # 2️⃣ Build Docker image
       # ----------------------
       - name: Build Docker image
         run: |
           docker build -t joyukpabi-frontend .
 
       # ----------------------
-      # 4️⃣ Authenticate to ECR
+      # 3️⃣ Authenticate to ECR
       # ----------------------
       - name: Login to ECR
         run: |
@@ -40,7 +41,7 @@ jobs:
             | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
       # ----------------------
-      # 5️⃣ Tag and push image
+      # 4️⃣ Tag and push image
       # ----------------------
       - name: Tag and Push to ECR
         run: |
@@ -48,7 +49,7 @@ jobs:
           docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
 
       # ----------------------
-      # 6️⃣ Deploy to EC2
+      # 5️⃣ Deploy to EC2
       # ----------------------
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.9
@@ -79,15 +80,15 @@ jobs:
             cd ~/joyukpabi-frontend
 
             cat <<EOT > docker-compose.yml
-            version: "3.9"
-            services:
-              web:
-                image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
-                container_name: joyukpabi-container
-                ports:
-                  - "80:5000"
-                restart: unless-stopped
-            EOT
+version: "3.9"
+services:
+  web:
+    image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
+    container_name: joyukpabi-container
+    ports:
+      - "80:5000"
+    restart: unless-stopped
+EOT
 
             docker-compose pull
             docker-compose up -d
