@@ -82,5 +82,5 @@ jobs:
               > docker-compose.yml
 
             # Pull image and start container
-            docker-compose pull
-            docker-compose up -d
+            sudo docker-compose pull
+            sudo docker-compose up -d
