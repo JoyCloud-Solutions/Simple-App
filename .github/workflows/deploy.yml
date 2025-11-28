@@ -73,7 +73,7 @@ jobs:
             docker rm -f joyukpabi-container || true
 
             # Run new container
-            docker run -d \
+            sudo docker run -d \
               --name joyukpabi-container \
               -p 80:5000 \
               -e NODE_ENV=production \
