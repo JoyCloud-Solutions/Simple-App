@@ -41,15 +41,15 @@ jobs:
       - name: Login to ECR
         run: |
           aws ecr get-login-password --region eu-north-1 \
-          | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
+          |sudo docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
       # ----------------------
       # 5️⃣ Tag and push Docker image
       # ----------------------
       - name: Tag and Push Docker image
         run: |
-          docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
-          docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
+          sudo docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
+          sudo docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
 
       # ----------------------
       # 6️⃣ Deploy to EC2 (manual docker run)
@@ -67,10 +67,10 @@ jobs:
 
             # Login to ECR
             aws ecr get-login-password --region eu-north-1 \
-              | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
+              | sudo docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
             # Stop and remove old container if exists
-            docker rm -f joyukpabi-container || true
+            sudo docker rm -f joyukpabi-container || true
 
             # Run new container
             sudo docker run -d \
