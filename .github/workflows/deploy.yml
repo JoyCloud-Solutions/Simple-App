@@ -17,14 +17,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ OIDC AWS authentication
+      # 2️⃣ Configure AWS credentials via OIDC
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::866002118117:role/oidc
           aws-region: eu-north-1
 
-      # 3️⃣ Build locally
+      # 3️⃣ Build Docker image
       - name: Build Docker image
         run: |
           docker build -t joyukpabi-frontend .
@@ -35,13 +35,13 @@ jobs:
           aws ecr get-login-password --region eu-north-1 \
           | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-      # 5️⃣ Tag + Push
-      - name: Push image to ECR
+      # 5️⃣ Tag and push image
+      - name: Tag and Push Docker image
         run: |
           docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
           docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
 
-      # 6️⃣ SSH into EC2 + Deploy
+      # 6️⃣ Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.9
         with:
@@ -79,7 +79,7 @@ jobs:
             aws ecr get-login-password --region eu-north-1 \
               | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-            # Create docker-compose.yml on EC2
+            # Create docker-compose.yml
             cat <<EOT > docker-compose.yml
 version: "3.9"
 services:
@@ -91,6 +91,6 @@ services:
     restart: unless-stopped
 EOT
 
-            # Deploy updated image
+            # Pull and deploy container
             docker-compose pull
             docker-compose up -d
