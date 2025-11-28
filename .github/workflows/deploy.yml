@@ -47,33 +47,24 @@ jobs:
             mkdir -p ~/joyukpabi-frontend
             cd ~/joyukpabi-frontend
 
-            # Install Docker
+            # Install Docker if missing
             if ! command -v docker &> /dev/null; then
               curl -fsSL https://get.docker.com -o get-docker.sh
               sudo sh get-docker.sh
             fi
 
-            # Install Docker Compose
+            # Install Docker Compose if missing
             if ! command -v docker-compose &> /dev/null; then
               sudo curl -L "https://github.com/docker/compose/releases/download/2.22.2/docker-compose-$(uname -s)-$(uname -m)" \
                 -o /usr/local/bin/docker-compose
               sudo chmod +x /usr/local/bin/docker-compose
             fi
 
-            # Install AWS CLI
-            if ! command -v aws &> /dev/null; then
-              sudo apt-get update
-              sudo apt-get install -y unzip
-              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-              unzip awscliv2.zip
-              sudo ./aws/install
-            fi
-
-            # Login to ECR
+            # Login to ECR (AWS CLI already installed)
             aws ecr get-login-password --region eu-north-1 \
               | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-            # Write docker-compose.yml without heredoc problems
+            # Write docker-compose.yml using printf
             printf "%s\n" \
               "version: '3.9'" \
               "services:" \
