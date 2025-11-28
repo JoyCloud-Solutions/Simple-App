@@ -29,9 +29,9 @@ jobs:
       - name: Login to ECR
         run: |
           aws ecr get-login-password --region eu-north-1 \
-            | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
+          | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-      - name: Tag and Push Docker image
+      - name: Push Docker image
         run: |
           docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
           docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
@@ -44,38 +44,37 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            script: |
-              mkdir -p ~/joyukpabi-frontend
-              cd ~/joyukpabi-frontend
-            
-              # Install Docker if missing
-              if ! command -v docker &> /dev/null; then
-                curl -fsSL https://get.docker.com -o get-docker.sh
-                sudo sh get-docker.sh
-              fi
-            
-              # Install Docker Compose if missing
-              if ! command -v docker-compose &> /dev/null; then
-                sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
-                  -o /usr/local/bin/docker-compose
-                sudo chmod +x /usr/local/bin/docker-compose
-              fi
-            
-              # Login to ECR (requires EC2 IAM role!)
-              aws ecr get-login-password --region eu-north-1 \
-                | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
-            
-              # Generate docker-compose.yml
-              printf "%s\n" \
-                "version: '3.9'" \
-                "services:" \
-                "  web:" \
-                "    image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest" \
-                "    container_name: joyukpabi-container" \
-                "    ports:" \
-                "      - '80:5000'" \
-                "    restart: unless-stopped" \
-                > docker-compose.yml
-            
-              docker-compose pull
-              docker-compose up -d
+            mkdir -p ~/joyukpabi-frontend
+            cd ~/joyukpabi-frontend
+
+            # Install Docker if missing
+            if ! command -v docker &> /dev/null; then
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
+            fi
+
+            # Install Docker Compose if missing (correct!)
+            if ! command -v docker-compose &> /dev/null; then
+              sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" \
+                -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            fi
+
+            # Login to ECR
+            aws ecr get-login-password --region eu-north-1 \
+              | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
+
+            # Write docker-compose.yml
+            printf "%s\n" \
+              "version: '3.9'" \
+              "services:" \
+              "  web:" \
+              "    image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest" \
+              "    container_name: joyukpabi-container" \
+              "    ports:" \
+              "      - '80:5000'" \
+              "    restart: unless-stopped" \
+              > docker-compose.yml
+
+            docker-compose pull
+            docker-compose up -d
