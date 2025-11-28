@@ -25,64 +25,69 @@ jobs:
         role-to-assume: arn:aws:iam::866002118117:role/oidc
         aws-region: us-east-1
 
-    # ----------------------
-    # 2️⃣ Build Docker image
-    # ----------------------
-    - name: Build Docker image
-      run: docker build -t myapp:latest .
+   # 3️⃣ Build Docker image
+      # ----------------------
+      - name: Build Docker image
+        run: |
+          docker build -t joyukpabi-frontend .
 
-    # ----------------------
-    # 3️⃣ Push image to ECR
-    # ----------------------
-    - name: Login to AWS ECR
-      run: |
-        aws ecr get-login-password --region eu-north-1 \
-        docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
-    - name: Tag & Push image to ECR
-      run: |
-      
-        docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
-        docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
-    # ----------------------
-    # 4️⃣ Deploy to EC2 via SSH
-    # ----------------------
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.9
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        port: 22
-        script: |
-          # Install Docker if missing
-          if ! command -v docker &> /dev/null; then
-            curl -fsSL https://get.docker.com -o get-docker.sh
-            sudo sh get-docker.sh
-          fi
-
-          # Install Docker Compose if missing
-          if ! command -v docker-compose &> /dev/null; then
-            sudo curl -L "https://github.com/docker/compose/releases/download/2.22.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
-          fi
-
-          # Login to ECR on EC2
+      # ----------------------
+      # 4️⃣ Authenticate to ECR
+      # ----------------------
+      - name: Login to ECR
+        run: |
           aws ecr get-login-password --region eu-north-1 \
             | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-          # Pull the latest image and deploy with Docker Compose
-          cd /home/ubuntu/myapp || mkdir -p /home/ubuntu/myapp
-          cat <<EOT > /home/ubuntu/myapp/docker-compose.yml
-          version: "3.9"
-          services:
-            web:
-              image: 866002118117.dkr.ecr.us-east-1.amazonaws.com/myapp:latest
-              container_name: myapp-container
-              ports:
-                - "80:5000"
-              restart: unless-stopped
-          EOT
+      # ----------------------
+      # 5️⃣ Tag and push image
+      # ----------------------
+      - name: Tag and Push to ECR
+        run: |
+          docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
+          docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
 
-          cd /home/ubuntu/myapp
-          docker-compose pull
-          docker-compose up -d
+      # ----------------------
+      # 6️⃣ Deploy to EC2
+      # ----------------------
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            # Install Docker if missing
+            if ! command -v docker &> /dev/null; then
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
+            fi
+
+            # Install Docker Compose if missing
+            if ! command -v docker-compose &> /dev/null; then
+              sudo curl -L "https://github.com/docker/compose/releases/download/2.22.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            fi
+
+            # Login to ECR on EC2
+            aws ecr get-login-password --region eu-north-1 \
+              | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
+
+            # Deploy Docker Compose
+            mkdir -p ~/joyukpabi-frontend
+            cd ~/joyukpabi-frontend
+
+            cat <<EOT > docker-compose.yml
+            version: "3.9"
+            services:
+              web:
+                image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
+                container_name: joyukpabi-container
+                ports:
+                  - "80:5000"
+                restart: unless-stopped
+            EOT
+
+            docker-compose pull
+            docker-compose up -d
