@@ -47,16 +47,20 @@ jobs:
             mkdir -p ~/joyukpabi-frontend
             cd ~/joyukpabi-frontend
 
+            # Install Docker
             if ! command -v docker &> /dev/null; then
               curl -fsSL https://get.docker.com -o get-docker.sh
               sudo sh get-docker.sh
             fi
 
+            # Install Docker Compose
             if ! command -v docker-compose &> /dev/null; then
-              sudo curl -L "https://github.com/docker/compose/releases/download/2.22.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo curl -L "https://github.com/docker/compose/releases/download/2.22.2/docker-compose-$(uname -s)-$(uname -m)" \
+                -o /usr/local/bin/docker-compose
               sudo chmod +x /usr/local/bin/docker-compose
             fi
 
+            # Install AWS CLI
             if ! command -v aws &> /dev/null; then
               sudo apt-get update
               sudo apt-get install -y unzip
@@ -65,20 +69,21 @@ jobs:
               sudo ./aws/install
             fi
 
+            # Login to ECR
             aws ecr get-login-password --region eu-north-1 \
               | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-            # Write docker-compose.yml
-            cat << 'EOT' > docker-compose.yml
-version: "3.9"
-services:
-  web:
-    image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
-    container_name: joyukpabi-container
-    ports:
-      - "80:5000"
-    restart: unless-stopped
-EOT
+            # Write docker-compose.yml without heredoc problems
+            printf "%s\n" \
+              "version: '3.9'" \
+              "services:" \
+              "  web:" \
+              "    image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest" \
+              "    container_name: joyukpabi-container" \
+              "    ports:" \
+              "      - '80:5000'" \
+              "    restart: unless-stopped" \
+              > docker-compose.yml
 
             docker-compose pull
             docker-compose up -d
