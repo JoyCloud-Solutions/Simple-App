@@ -1,4 +1,4 @@
-name: Build and Deploy to EC2 via ECR
+name: Build and Deploy Python App to EC2 via ECR
 
 on:
   push:
@@ -13,43 +13,46 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repo
+      # ----------------------
+      # 1️⃣ Checkout repo
+      # ----------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       # ----------------------
-      # 1️⃣ Configure AWS credentials via OIDC
+      # 2️⃣ Configure AWS credentials via OIDC
       # ----------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::866002118117:role/oidc
-          aws-region: us-east-1
+          aws-region: eu-north-1
 
       # ----------------------
-      # 2️⃣ Build Docker image
+      # 3️⃣ Build Docker image
       # ----------------------
       - name: Build Docker image
         run: |
           docker build -t joyukpabi-frontend .
 
       # ----------------------
-      # 3️⃣ Authenticate to ECR
+      # 4️⃣ Authenticate to ECR
       # ----------------------
       - name: Login to ECR
         run: |
           aws ecr get-login-password --region eu-north-1 \
-            | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
+          | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
       # ----------------------
-      # 4️⃣ Tag and push image
+      # 5️⃣ Tag and push image to ECR
       # ----------------------
-      - name: Tag and Push to ECR
+      - name: Tag and Push Docker image
         run: |
           docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
           docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
 
       # ----------------------
-      # 5️⃣ Deploy to EC2
+      # 6️⃣ Deploy to EC2
       # ----------------------
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.9
@@ -59,6 +62,10 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            # Create app directory
+            mkdir -p ~/joyukpabi-frontend
+            cd ~/joyukpabi-frontend
+
             # Install Docker if missing
             if ! command -v docker &> /dev/null; then
               curl -fsSL https://get.docker.com -o get-docker.sh
@@ -71,24 +78,13 @@ jobs:
               sudo chmod +x /usr/local/bin/docker-compose
             fi
 
-            # Login to ECR on EC2
+            # Login to ECR
             aws ecr get-login-password --region eu-north-1 \
               | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-            # Deploy Docker Compose
-            mkdir -p ~/joyukpabi-frontend
-            cd ~/joyukpabi-frontend
+            # Copy docker-compose.yml from repo
+            cp $GITHUB_WORKSPACE/docker-compose.yml ./
 
-            cat <<EOT > docker-compose.yml
-version: "3.9"
-services:
-  web:
-    image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
-    container_name: joyukpabi-container
-    ports:
-      - "80:5000"
-    restart: unless-stopped
-EOT
-
+            # Pull image and deploy
             docker-compose pull
             docker-compose up -d
