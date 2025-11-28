@@ -29,7 +29,7 @@ jobs:
       - name: Login to ECR
         run: |
           aws ecr get-login-password --region eu-north-1 \
-          | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
+            | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
       - name: Tag and Push Docker image
         run: |
@@ -68,7 +68,8 @@ jobs:
             aws ecr get-login-password --region eu-north-1 \
               | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-            cat <<EOT > docker-compose.yml
+            # Write docker-compose.yml
+            cat << 'EOT' > docker-compose.yml
 version: "3.9"
 services:
   web:
