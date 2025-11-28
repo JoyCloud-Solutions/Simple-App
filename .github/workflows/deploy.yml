@@ -71,7 +71,7 @@ jobs:
 
             # Write docker-compose.yml
             printf "%s\n" \
-              "version: '3.9'" \
+              
               "services:" \
               "  web:" \
               "    image: 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest" \
