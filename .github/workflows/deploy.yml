@@ -13,29 +13,47 @@ jobs:
       contents: read
 
     steps:
+      # ----------------------
+      # 1️⃣ Checkout repository
+      # ----------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ----------------------
+      # 2️⃣ Configure AWS credentials via OIDC
+      # ----------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::866002118117:role/oidc
           aws-region: eu-north-1
 
+      # ----------------------
+      # 3️⃣ Build Docker image
+      # ----------------------
       - name: Build Docker image
         run: |
           docker build -t joyukpabi-frontend .
 
+      # ----------------------
+      # 4️⃣ Login to ECR
+      # ----------------------
       - name: Login to ECR
         run: |
           aws ecr get-login-password --region eu-north-1 \
           | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
-      - name: Push Docker image
+      # ----------------------
+      # 5️⃣ Tag and push Docker image
+      # ----------------------
+      - name: Tag and Push Docker image
         run: |
           docker tag joyukpabi-frontend:latest 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
           docker push 866002118117.dkr.ecr.eu-north-1.amazonaws.com/joyukpabi-frontend:latest
 
+      # ----------------------
+      # 6️⃣ Deploy to EC2
+      # ----------------------
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.9
         with:
@@ -47,20 +65,7 @@ jobs:
             mkdir -p ~/joyukpabi-frontend
             cd ~/joyukpabi-frontend
 
-            # Install Docker if missing
-            if ! command -v docker &> /dev/null; then
-              curl -fsSL https://get.docker.com -o get-docker.sh
-              sudo sh get-docker.sh
-            fi
-
-            # Install Docker Compose if missing (correct!)
-            if ! command -v docker-compose &> /dev/null; then
-              sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-$(uname -s)-$(uname -m)" \
-                -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
-            fi
-
-            # Login to ECR
+            # Login to ECR (EC2 must have IAM role with ECR permissions)
             aws ecr get-login-password --region eu-north-1 \
               | docker login --username AWS --password-stdin 866002118117.dkr.ecr.eu-north-1.amazonaws.com
 
@@ -76,5 +81,6 @@ jobs:
               "    restart: unless-stopped" \
               > docker-compose.yml
 
+            # Pull image and start container
             docker-compose pull
             docker-compose up -d
